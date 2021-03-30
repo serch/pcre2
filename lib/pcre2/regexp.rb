@@ -14,17 +14,19 @@ module PCRE2
       end
 
       @pattern_ptr = Lib.compile_pattern(source, options)
+      @jit = false
     end
 
     # Compiles the Regexp into a JIT optimised version. Returns whether it was successful
     def jit!
-      options = PCRE2_JIT_COMPLETE | PCRE2_JIT_PARTIAL_SOFT | PCRE2_JIT_PARTIAL_HARD
+      # options = PCRE2_JIT_COMPLETE | PCRE2_JIT_PARTIAL_SOFT | PCRE2_JIT_PARTIAL_HARD
+      options = PCRE2_JIT_COMPLETE
 
-      Lib.pcre2_jit_compile_8(pattern_ptr, options) == 0
+      @jit = Lib.pcre2_jit_compile_8(pattern_ptr, options) == 0
     end
 
     def match(str, pos = nil)
-      result_count, match_data_ptr = Lib.match(@pattern_ptr, str, position: pos)
+      result_count, match_data_ptr = Lib.match(@pattern_ptr, str, position: pos, jit: @jit)
 
       if result_count == 0
         nil

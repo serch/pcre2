@@ -19,19 +19,19 @@ task :benchmark do
       pcre2_re_jit = PCRE2::Regexp.new(pattern).tap(&:jit!)
 
       benchmark.report("Ruby Regexp") do
-        100000.times { task.call(ruby_re) }
+        100_000.times { task.call(ruby_re) }
       end
 
       GC.start
 
       benchmark.report("PCRE2 Regexp") do
-        100000.times { task.call(pcre2_re) }
+        100_000.times { task.call(pcre2_re) }
       end
 
       GC.start
 
       benchmark.report("PCRE2 Regexp - JIT enhanced") do
-        100000.times { task.call(pcre2_re_jit) }
+        100_000.times { task.call(pcre2_re_jit) }
       end
     end
     GC.enable

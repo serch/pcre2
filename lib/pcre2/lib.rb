@@ -1,11 +1,20 @@
 require "ffi"
+# require "pry"
+# require "byebug"
+# require "pry-byebug"
 
 module PCRE2::Lib
   RETURN_CODE_NO_ERROR = 100
 
   extend FFI::Library
 
+  # loads
   ffi_lib 'pcre2-8'     # Able to do 16 or 32 too
+  # ffi_lib '/usr/local/Cellar/pcre2/10.36/lib/libpcre2-8.dylib'
+  # ffi_lib '/usr/local/lib/libpcre2-8.dylib'
+
+  # export symbols
+  # nm -gU /usr/local/Cellar/pcre2/10.36/lib/libpcre2-8.dylib
 
   PCRE2_SIZE    = typedef :size_t,   :PCRE2_SIZE
   PCRE2_SPTR    = typedef :pointer,  :PCRE2_SPTR
@@ -32,6 +41,7 @@ module PCRE2::Lib
 
   # int pcre2_match(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext);
   attach_function :pcre2_match_8, [ :pointer, :PCRE2_SPTR, :PCRE2_SIZE, :PCRE2_SIZE, :uint32_t, :pointer, :pointer ], :int
+  attach_function :pcre2_jit_match_8, [ :pointer, :PCRE2_SPTR, :PCRE2_SIZE, :PCRE2_SIZE, :uint32_t, :pointer, :pointer ], :int
 
   attach_function :pcre2_get_ovector_count_8, [ :pointer ], :uint32_t
   attach_function :pcre2_get_ovector_pointer_8, [ :pointer ], :pointer
@@ -82,22 +92,35 @@ module PCRE2::Lib
     FFI::AutoPointer.new(match_data_ptr, PCRE2::Lib.method(:pcre2_match_data_free_8))
   end
 
-  def self.match(pattern_ptr, body, position: 0, match_data_ptr: nil)
+  def self.match(pattern_ptr, body, position: 0, match_data_ptr: nil, jit: false)
     position ||= 0
     match_data_ptr ||= create_match_data_for_pattern(pattern_ptr)
 
     body_ptr = FFI::MemoryPointer.from_string(body)
 
-    return_code =
-      PCRE2::Lib.pcre2_match_8(
-        pattern_ptr,
-        body_ptr,
-        body_ptr.size,
-        position,
-        0,
-        match_data_ptr,
-        nil
-      )
+    if jit
+      return_code =
+        PCRE2::Lib.pcre2_jit_match_8(
+          pattern_ptr,
+          body_ptr,
+          body_ptr.size,
+          position,
+          0,
+          match_data_ptr,
+          nil
+        )
+    else
+      return_code =
+        PCRE2::Lib.pcre2_match_8(
+          pattern_ptr,
+          body_ptr,
+          body_ptr.size,
+          position,
+          0,
+          match_data_ptr,
+          nil
+        )
+    end
 
     case return_code
     when 0
